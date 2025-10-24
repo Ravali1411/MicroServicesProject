@@ -6,7 +6,7 @@ pipeline {
             steps {
                 script {
                     withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        sh "docker build -t shaikmustafa77/paymentservice:latest ."
+                        sh 'docker build -t ravali2001/paymentservice:latest .'
                     }
                 }
             }
@@ -16,8 +16,20 @@ pipeline {
             steps {
                 script {
                     withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        sh "docker push shaikmustafa77/paymentservice:latest "
+                        sh 'docker push ravali2001/paymentservice:latest'
                     }
+                }
+            }
+        }
+
+        stage('Deploy to EKS1') {
+            steps {
+                script {
+                    sh '''
+                        aws eks --region us-east-1 update-kubeconfig --name EKS1
+                        kubectl apply -f deployment.yaml
+                        kubectl apply -f service.yaml
+                    '''
                 }
             }
         }
