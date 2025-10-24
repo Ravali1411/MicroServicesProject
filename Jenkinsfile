@@ -34,16 +34,14 @@ pipeline {
                 script {
                     sh "aws eks --region ${env.AWS_REGION} update-kubeconfig --name ${env.EKS_CLUSTER}"
 
-                    def yamls = ['deployment-service.yml', 'service-account.yml', 'role.yml', 'secret.yml']
+                    def requiredYamls = ['deployment-service.yml', 'service-account.yml', 'role.yml', 'secret.yml']
 
-                    for (file in yamls) {
-                        if (!fileExists(file)) {
-                            error "Deployment failed: Required file '${file}' is missing in workspace"
+                    for (yaml in requiredYamls) {
+                        def found = sh(script: "find . -name ${yaml}", returnStdout: true).trim()
+                        if (!found) {
+                            error "Deployment failed: Required file '${yaml}' not found in repository"
                         }
-                    }
-
-                    for (file in yamls) {
-                        sh "kubectl apply -f ${file}"
+                        sh "kubectl apply -f ${found}"
                     }
                 }
             }
