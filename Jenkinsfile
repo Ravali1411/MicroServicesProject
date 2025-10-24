@@ -27,8 +27,10 @@ pipeline {
                 script {
                     sh '''
                         aws eks --region us-east-1 update-kubeconfig --name EKS1
-                        kubectl apply -f deployment.yaml
-                        kubectl apply -f service.yaml
+                        kubectl apply -f deployment-service.yml
+                        kubectl apply -f service-account.yml
+                        kubectl apply -f role.yml
+                        kubectl apply -f secret.yml
                     '''
                 }
             }
