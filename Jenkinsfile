@@ -1,12 +1,19 @@
 pipeline {
     agent any
 
+    environment {
+        DOCKER_IMAGE = "ravali2001/adservice:latest"
+        DOCKER_CREDENTIALS = "docker-cred"
+        AWS_REGION = "us-east-1"
+        EKS_CLUSTER = "EKS1"
+    }
+
     stages {
         stage('Build & Tag Docker Image') {
             steps {
                 script {
-                    withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        sh 'docker build -t ravali2001/adservice:latest .'
+                    withDockerRegistry(credentialsId: env.DOCKER_CREDENTIALS) {
+                        sh "docker build -t ${env.DOCKER_IMAGE} ."
                     }
                 }
             }
@@ -15,25 +22,42 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script {
-                    withDockerRegistry(credentialsId: 'docker-cred', toolName: 'docker') {
-                        sh 'docker push ravali2001/adservice:latest'
+                    withDockerRegistry(credentialsId: env.DOCKER_CREDENTIALS) {
+                        sh "docker push ${env.DOCKER_IMAGE}"
                     }
                 }
             }
         }
 
-        stage('Deploy to EKS1') {
+        stage('Deploy to EKS') {
             steps {
                 script {
-                    sh '''
-                        aws eks --region us-east-1 update-kubeconfig --name EKS1
+                    sh """
+                        aws eks --region ${env.AWS_REGION} update-kubeconfig --name ${env.EKS_CLUSTER}
                         kubectl apply -f deployment-service.yml
                         kubectl apply -f service-account.yml
                         kubectl apply -f role.yml
                         kubectl apply -f secret.yml
-                    '''
+                    """
                 }
             }
+        }
+
+        stage('Verify Deployment') {
+            steps {
+                script {
+                    sh "kubectl get svc"
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "Deployment completed successfully!"
+        }
+        failure {
+            echo "Deployment failed!"
         }
     }
 }
