@@ -32,13 +32,19 @@ pipeline {
         stage('Deploy to EKS') {
             steps {
                 script {
-                    sh """
-                        aws eks --region ${env.AWS_REGION} update-kubeconfig --name ${env.EKS_CLUSTER}
-                        kubectl apply -f deployment-service.yml
-                        kubectl apply -f service-account.yml
-                        kubectl apply -f role.yml
-                        kubectl apply -f secret.yml
-                    """
+                    sh "aws eks --region ${env.AWS_REGION} update-kubeconfig --name ${env.EKS_CLUSTER}"
+
+                    def yamls = ['deployment-service.yml', 'service-account.yml', 'role.yml', 'secret.yml']
+
+                    for (file in yamls) {
+                        if (!fileExists(file)) {
+                            error "Deployment failed: Required file '${file}' is missing in workspace"
+                        }
+                    }
+
+                    for (file in yamls) {
+                        sh "kubectl apply -f ${file}"
+                    }
                 }
             }
         }
@@ -54,10 +60,10 @@ pipeline {
 
     post {
         success {
-            echo "Deployment completed successfully!"
+            echo "Deployment completed successfully"
         }
         failure {
-            echo "Deployment failed!"
+            echo "Deployment failed"
         }
     }
 }
